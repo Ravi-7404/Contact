@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">Contacts</h1>
+        <div class="max-w-md mx-auto bg-white rounded-lg shadow-md p-6 mb-8">
+            <h3 class="text-xl font-semibold mb-4 text-gray-700">Create a new contact</h3>
+            <form id="form" class="space-y-4">
+                <div>
+                    <label for="phno" class="block text-sm font-medium text-gray-700">Enter phone number:</label>
+                    <input id="phno" type="number" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                </div>
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700">Enter Name:</label>
+                    <input id="name" type="text" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                </div>
+                <button id="btn" type="button" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 transition duration-150 ease-in-out">Add Contact</button>
+            </form>
+        </div>
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <h4 class="text-xl font-semibold p-4 bg-gray-50 border-b text-gray-700">Your Contacts</h4>
+            <div class="overflow-x-auto">
+                <table id="contactTable" class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Contact Name <button id="sortBtn" class="ml-1 text-indigo-600 hover:text-indigo-900">^</button>
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone Number</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody" class="bg-white divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script>
+        const phnoInput = document.getElementById("phno");
+        const nameInput = document.getElementById("name");
+        const btn = document.getElementById("btn");
+        const tbody = document.getElementById("tbody");
+        const sortBtn = document.getElementById("sortBtn");
+
+        let isAscending = true;
+
+        async function fetchContacts() {
+            const response = await fetch('http://localhost:7000/contacts');
+            const contacts = await response.json();
+            tbody.innerHTML = '';
+            contacts.forEach(contact => addRow(contact));
+        }
+
+        function addRow(contact) {
+            const tr = document.createElement("tr");
+            const td1 = document.createElement("td");
+            const td2 = document.createElement("td");
+            const td3 = document.createElement("td");
+
+            const deleteBtn = document.createElement("button");
+
+            deleteBtn.innerText = "Delete";
+            deleteBtn.className = "text-red-600 hover:text-red-900 focus:outline-none";
+
+            td1.innerText = contact.name;
+            td2.innerText = contact.phno;
+
+            td3.appendChild(deleteBtn);
+
+            td1.className = "px-6 py-4 whitespace-nowrap text-sm text-gray-900";
+            td2.className = "px-6 py-4 whitespace-nowrap text-sm text-gray-500";
+            td3.className = "px-6 py-4 whitespace-nowrap text-right text-sm font-medium";
+
+            tr.appendChild(td1);
+            tr.appendChild(td2);
+            tr.appendChild(td3);
+
+            tbody.appendChild(tr);
+
+            deleteBtn.onclick = async function () {
+                await fetch(`http://localhost:7000/contacts/${contact._id}`, { method: 'DELETE' });
+                fetchContacts();
+            };
+        }
+
+        async function addContact() {
+            const name = nameInput.value.trim();
+            const phno = phnoInput.value.trim();
+
+            if (phno.length !== 10 || !name) {
+                alert("Invalid input");
+                return;
+            }
+
+            const response = await fetch('http://localhost:7000/contacts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, phno }),
+            });
+
+            if (response.ok) {
+                fetchContacts();
+                phnoInput.value = '';
+                nameInput.value = '';
+            }
+        }
+
+        async function sortContacts() {
+            const rows = Array.from(tbody.querySelectorAll("tr"));
+            rows.sort((a, b) => {
+                const nameA = a.children[0].innerText.toLowerCase();
+                const nameB = b.children[0].innerText.toLowerCase();
+                return isAscending ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+            });
+
+            tbody.innerHTML = '';
+            rows.forEach(row => tbody.appendChild(row));
+            isAscending = !isAscending;
+        }
+
+        btn.addEventListener("click", addContact);
+        sortBtn.addEventListener("click", sortContacts);
+
+        fetchContacts();
+    </script>
+</body>
+</html>
+
